@@ -27,7 +27,7 @@
 
 ### 方式一：直接使用打包好的 exe
 
-1. 从 [Releases](https://github.com/your-username/file-share-assistant/releases) 下载 `文件共享小助手.exe`
+1. 从 [Releases](https://github.com/Ningzuofu/file-share-assistant/releases) 下载 `文件共享小助手.exe`
 2. 双击运行
 3. 配置共享文件夹和端口
 4. 点击「启动服务」
