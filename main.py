@@ -4,6 +4,9 @@ import threading
 import tkinter as tk
 from tkinter import ttk, filedialog
 
+import pystray
+from PIL import Image, ImageDraw
+
 from config import load_config, save_config
 from server import init_server, run_server, stop_server
 
@@ -88,6 +91,7 @@ class FileShareApp:
         master.configure(bg=self.COLORS['bg'])
 
         self.config = load_config()
+        self.tray_icon = None
 
         canvas = tk.Canvas(master, bg=self.COLORS['bg'], highlightthickness=0)
         canvas.pack(fill=tk.BOTH, expand=True)
@@ -106,6 +110,7 @@ class FileShareApp:
             self.update_server_status(True)
 
         master.protocol("WM_DELETE_WINDOW", self.on_close)
+        master.bind("<Iconify>", self.on_minimize_event)
 
     def _card(self, parent, **kwargs):
         frame = tk.Frame(parent, bg=self.COLORS['card_bg'],
@@ -459,7 +464,52 @@ class FileShareApp:
     def on_close(self):
         global server_running
         server_running = False
+        stop_server()
+        if self.tray_icon:
+            self.tray_icon.stop()
         self.master.destroy()
+
+    def on_minimize_event(self, event):
+        self.master.after(10, self._hide_to_tray)
+        return "break"
+
+    def _hide_to_tray(self):
+        if self.tray_icon is None:
+            self._create_tray_icon()
+        self.master.withdraw()
+
+    def _create_tray_icon(self):
+        img = Image.new('RGBA', (64, 64), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.rounded_rectangle([4, 4, 60, 60], radius=14, fill=(255, 143, 171, 255))
+
+        menu = pystray.Menu(
+            pystray.MenuItem("显示窗口", self._show_window_from_tray),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("退出程序", self._quit_from_tray)
+        )
+
+        self.tray_icon = pystray.Icon("file_share", img, "🌸 文件共享小助手", menu)
+
+        def run_tray():
+            self.tray_icon.run()
+            self.tray_icon = None
+
+        threading.Thread(target=run_tray, daemon=True).start()
+
+    def _show_window_from_tray(self):
+        self.master.after(0, self._show_window)
+
+    def _show_window(self):
+        self.master.deiconify()
+
+    def _quit_from_tray(self):
+        global server_running
+        server_running = False
+        stop_server()
+        if self.tray_icon:
+            self.tray_icon.stop()
+        self.master.after(100, self.master.destroy)
 
 
 def main():
