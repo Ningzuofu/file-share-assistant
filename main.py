@@ -110,7 +110,8 @@ class FileShareApp:
             self.update_server_status(True)
 
         master.protocol("WM_DELETE_WINDOW", self.on_close)
-        master.bind("<Iconify>", self.on_minimize_event)
+        master.bind("<Unmap>", self.on_unmap_event)
+        self._hiding_to_tray = False
 
     def _card(self, parent, **kwargs):
         frame = tk.Frame(parent, bg=self.COLORS['card_bg'],
@@ -469,14 +470,19 @@ class FileShareApp:
             self.tray_icon.stop()
         self.master.destroy()
 
-    def on_minimize_event(self, event):
-        self.master.after(10, self._hide_to_tray)
+    def on_unmap_event(self, event):
+        if not self._hiding_to_tray:
+            self._hiding_to_tray = True
+            self._hide_to_tray()
+            self._hiding_to_tray = False
         return "break"
 
     def _hide_to_tray(self):
         if self.tray_icon is None:
             self._create_tray_icon()
+        self._hiding_to_tray = True
         self.master.withdraw()
+        self._hiding_to_tray = False
 
     def _create_tray_icon(self):
         img = Image.new('RGBA', (64, 64), (0, 0, 0, 0))
